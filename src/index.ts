@@ -1,10 +1,8 @@
-import {
-    Module,
-    Controller
-} from 'elios-sdk';
-import {
-    BrowserWindow
-} from 'electron';
+const elios_sdk = require('elios-sdk');
+const sdk = new elios_sdk.default();
+// import {
+//     BrowserWindow
+// } from 'electron';
 
 var NodeTwitterAPI = require('node-twitter-api');
 import * as Twitter from 'twitter'
@@ -16,7 +14,7 @@ var cheerio = require('cheerio'),
 
 const $ = cheerio.load(html);
 
-export default class TwitterApp implements Module {
+export default class TwitterApp {
     name: string = 'TwitterApp';
     installId: string = '';
 
@@ -28,7 +26,7 @@ export default class TwitterApp implements Module {
     client: any;
 
 
-    constructor(private elios: Controller) {
+    constructor() {
         console.log('Construtor');
     }
 
@@ -53,79 +51,79 @@ export default class TwitterApp implements Module {
 
             $('#twitter').append(elem);
         }
-        this.widget.html.next($('#twitter-container').html());
+        this.widget.html($('#twitter-container').html());
     }
 
-    authenticate() {
-        const twitterAuth = new NodeTwitterAPI({
-            callback: credentials.twitter.callbackURL,
-            consumerKey: credentials.twitter.consumerKey,
-            consumerSecret: credentials.twitter.consumerSecret,
-          })
+    // authenticate() {
+    //     const twitterAuth = new NodeTwitterAPI({
+    //         callback: credentials.twitter.callbackURL,
+    //         consumerKey: credentials.twitter.consumerKey,
+    //         consumerSecret: credentials.twitter.consumerSecret,
+    //       })
       
-          twitterAuth.getRequestToken((error: any, requestToken: any, requestTokenSecret: any) => {
-            if (error) {
-              // TODO: Send event to main window
-              throw Error('Something went wrong while authenticating with Twitter: ' + error.data)
-            }
+    //       twitterAuth.getRequestToken((error: any, requestToken: any, requestTokenSecret: any) => {
+    //         if (error) {
+    //           // TODO: Send event to main window
+    //           throw Error('Something went wrong while authenticating with Twitter: ' + error.data)
+    //         }
       
-            const url = twitterAuth.getAuthUrl(requestToken)
+    //         const url = twitterAuth.getAuthUrl(requestToken)
       
-            let authWindow = new BrowserWindow({
-              width: 800,
-              height: 600,
-              autoHideMenuBar: true,
-              webPreferences: {
-                nodeIntegration: false
-              }
-            })
+    //         let authWindow = new BrowserWindow({
+    //           width: 800,
+    //           height: 600,
+    //           autoHideMenuBar: true,
+    //           webPreferences: {
+    //             nodeIntegration: false
+    //           }
+    //         })
       
-            authWindow.webContents.on('will-navigate', (e, url) => {
-              const matched = url.match(/\?oauth_token=([^&]*)&oauth_verifier=([^&]*)/)
+    //         authWindow.webContents.on('will-navigate', (e, url) => {
+    //           const matched = url.match(/\?oauth_token=([^&]*)&oauth_verifier=([^&]*)/)
       
-              if (matched) {
-                e.preventDefault()
+    //           if (matched) {
+    //             e.preventDefault()
       
-                twitterAuth.getAccessToken(requestToken, requestTokenSecret, matched[2], (error: any, accessToken: any, accessTokenSecret: any) => {
-                  if (error) {
-                    // TODO: Send event to main window
-                    throw Error('Something went wrong while authenticating with Twitter: ' + error.data)
-                  }
+    //             twitterAuth.getAccessToken(requestToken, requestTokenSecret, matched[2], (error: any, accessToken: any, accessTokenSecret: any) => {
+    //               if (error) {
+    //                 // TODO: Send event to main window
+    //                 throw Error('Something went wrong while authenticating with Twitter: ' + error.data)
+    //               }
       
-                  this.token = {
-                    service: 'twitter',
-                    accessToken: accessToken,
-                    accessTokenSecret: accessTokenSecret
-                  }
+    //               this.token = {
+    //                 service: 'twitter',
+    //                 accessToken: accessToken,
+    //                 accessTokenSecret: accessTokenSecret
+    //               }
       
-                  this.client = new Twitter({
-                    consumer_key: credentials.twitter.consumerKey,
-                    consumer_secret: credentials.twitter.consumerSecret,
-                    access_token_key: this.token['accessToken'],
-                    access_token_secret: this.token['accessTokenSecret']
-                  })
+    //               this.client = new Twitter({
+    //                 consumer_key: credentials.twitter.consumerKey,
+    //                 consumer_secret: credentials.twitter.consumerSecret,
+    //                 access_token_key: this.token['accessToken'],
+    //                 access_token_secret: this.token['accessTokenSecret']
+    //               })
       
-                  this.client.get('account/verify_credentials', {}, (error: any, data: any, response: any) => {
-                    if (error) {
-                      console.log(JSON.stringify(error))
-                    }
+    //               this.client.get('account/verify_credentials', {}, (error: any, data: any, response: any) => {
+    //                 if (error) {
+    //                   console.log(JSON.stringify(error))
+    //                 }
       
-                    this.token['id_str'] = data.id_str
+    //                 this.token['id_str'] = data.id_str
       
-                    this.getUserTimeline();
+    //                 this.getUserTimeline();
                     
-                    if (authWindow) {
-                      authWindow.close()
-                    }
-                  })
-                })
-              }
-            })
+    //                 if (authWindow) {
+    //                   authWindow.close()
+    //                 }
+    //               })
+    //             })
+    //           }
+    //         })
       
-            authWindow.loadURL(`${url}&force_login=true`)
-          })
+    //         authWindow.loadURL(`${url}&force_login=true`)
+    //       })
 
-    }
+    // }
 
     getUserTimeline() {
           this.client.get('statuses/home_timeline', {}, (error: any, tweets: any, response: any) => {
@@ -139,15 +137,27 @@ export default class TwitterApp implements Module {
 
     start() {
         console.log('MODULE STARTED ' + this.name);
-        this.widget = this.elios.createWidget({
+        this.widget = sdk.createWidget({
             id: this.installId
         });
-        this.widget.html.next($('#twitter-container').html());
+        this.widget.html($('#twitter-container').html());
 
-        this.authenticate();
+        // this.authenticate();
+
+        this.client = new Twitter({
+          consumer_key: credentials.twitter.consumerKey,
+          consumer_secret: credentials.twitter.consumerSecret,
+          access_token_key: credentials.twitter.accessToken,
+          access_token_secret: credentials.twitter.accessTokenSecret
+        })
+        this.getUserTimeline();
     }
 
     stop() {
         console.log('MODULE STOPED ' + this.name);
     }
 }
+
+const twitter = new TwitterApp()
+
+twitter.start()
